@@ -1,0 +1,9 @@
+{{define "content"}}
+    <h1>Edit page "{{.Title}}"</h1>
+    <form action="/save/{{.Slug}}" method="POST" class="form">
+        <div class="form-group">
+            <textarea name="Content" rows="10" cols="60" id="page_content" class="form-control">{{printf "%s" .Content}}</textarea>
+        </div>
+        <input type="submit" class="btn btn-primary" value="Save page">[<a href="/view/{{.Slug}}">cancel</a>]
+    </form>
+{{end}}

@@ -1,0 +1,66 @@
+version: '3.2'
+
+networks:
+  frontent-network:
+    driver: bridge
+  backend-network:
+    driver: bridge
+
+volumes:
+  wiki-db-data:
+
+services:
+  &app-db app-db:
+    image: dmbur/wiki/db
+    build:
+      context: deployments/docker/db
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: pass
+      MYSQL_DATABASE: &db-name wiki
+      MYSQL_USER: &db-user wiki
+      MYSQL_PASSWORD: &db-pass 123123
+    volumes:
+      - wiki-db-data:/var/lib/mysql
+    networks:
+      - backend-network
+  &wiki-app wiki-app:
+    image: dmbur/wiki/app
+    build:
+      context: .
+      dockerfile: deployments/docker/app/Dockerfile
+#    ports:
+#      - 8001:8001
+    volumes:
+      - ./:/go/src/github.com/dn23rus/wiki-v2
+    networks:
+      - frontent-network
+      - backend-network
+    environment:
+      APP_LISTEN_ADDRESS: 0.0.0.0
+      APP_LISTEN_PORT: &app-listen-port 8001
+      DB_HOST: *app-db
+      DB_NAME: *db-name
+      DB_USER: *db-user
+      DB_PASSWORD: *db-pass
+    depends_on:
+      - app-db
+  nginx-proxy:
+    image: dmbur/wiki/nginx-proxy
+    build:
+      context: deployments/docker/nginx
+      dockerfile: Dockerfile
+    ports:
+      - 8080:80
+    volumes:
+      - ./web:/app/web
+    depends_on:
+      - wiki-app
+    networks:
+      - frontent-network
+    environment:
+      APP_PROXY_HOST: *wiki-app
+      APP_PROXY_PORT: *app-listen-port
